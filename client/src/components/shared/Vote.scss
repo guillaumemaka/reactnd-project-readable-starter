@@ -1,0 +1,36 @@
+.Vote {
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 24px;
+
+  .Vote__Count {
+    padding: 0;
+    margin: 0;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.25em;
+  }
+
+  .Vote__Up a,
+  .Vote__Down a {
+    cursor: pointer;
+  }
+
+  .Vote__Down a i,
+  .Vote__Up a i,
+  .Vote__Down a img,
+  .Vote__Up a img {
+    display: block;
+  }
+
+  .Vote__Down a i,
+  .Vote__Up a i {
+    font-size: 3em;
+  }
+
+  .Vote__Down a img,
+  .Vote__Up a img {
+    width: 3em;
+    height: 3em;
+  }
+}

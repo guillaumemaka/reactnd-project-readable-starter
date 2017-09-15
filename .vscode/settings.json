@@ -1,0 +1,5 @@
+{
+  "eslint.enable": false,
+  "prettier.semi": false,
+  "standard.enable": true
+}

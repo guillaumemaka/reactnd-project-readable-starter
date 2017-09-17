@@ -1,4 +1,4 @@
-# MyReads
+# Readable
 
 This is the starter template for the second assessment project for Udacity's React Fundamentals course, developed by [React Training](https://reacttraining.com). The goal of this template is to save you time by providing a static example of the CSS and HTML markup that may be used, but without any of the React code that is needed to complete the project. If you choose to start with this template, your job will be to add interactivity to the app by refactoring the static code in this template.
 
@@ -40,6 +40,10 @@ http://localhost:3000/
 ## Built With
 
 * [React](https://facebook.github.io/react/docs/hello-world.html) - A JavaScript library for building user interfaces
+* [Redux](http://redux.js.org/) - Redux is a predictable state container for JavaScript apps.
+* [react-router](https://github.com/ReactTraining/react-router) - Frontend routing.
+* [react-redux](https://github.com/reactjs/react-redux) - Official React bindings for Redux. Performant and flexible.
+* [react-materialize](https://react-materialize.github.io/#/) - Material design components for react, powered by [materializecss](http://materializecss.com).
 
 # Readable API Server
 

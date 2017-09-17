@@ -3,51 +3,89 @@ import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
 import {
   editPost,
-  initEditorWithContent,
-  updateEditorState,
   updatePost,
+  upVotePost,
+  downVotePost,
   fetchPost,
   deletePost,
   fetchComments,
   addComment,
   editComment,
+  deleteComment,
   upVoteComment,
   downVoteComment,
-  sortComments
+  sortComments,
+  setAuthorIfNotPresent
 } from '../actions'
-import {
-  Collapsible,
-  CollapsibleItem,
-  Col,
-  Row,
-  Button,
-  Icon
-} from 'react-materialize'
+
+import { Card, Col, Row, Button, Icon } from 'react-materialize'
+import { goBack } from 'react-router-redux'
+import { EditorState } from 'draft-js'
+import { stateFromHTML } from 'draft-js-import-html'
+import { stateToHTML } from 'draft-js-export-html'
 
 import RichEditor from '../components/RichEditor'
 import CommentBox from '../components/CommentBox'
 import CommentList from '../components/CommentList'
 import Moment from 'react-moment'
-import 'moment-timezone'
-import { goBack } from 'react-router-redux'
+import Vote from '../components/shared/Vote'
 
 class PostDetails extends Component {
-  componentWillMount() {
-    this.props.fetchPost(this.props.postId)
-    this.props.fetchComments(this.props.postId)
+  state = {
+    isEditing: false,
+    isEditingComment: false,
+    editorState: EditorState.createEmpty(),
+    post: {},
+    errors: {}
   }
+
+  /**
+   * Lifecycle methods
+   */
+
+  componentWillMount() {
+    const { postId } = this.props
+    this.props.fetchPost(postId)
+    this.props.fetchComments(postId)
+  }
+
+  /**
+   * Event handlers
+   */
 
   startEditing = e => {
-    console.log('Start editing!')
-    this.props.editPost(this.props.post)
-    this.props.initEditorWithContent(this.props.post.body)
+    e.preventDefault()
+    const { post } = this.props
+    this.setState({
+      isEditing: true,
+      editorState: EditorState.createWithContent(stateFromHTML(post.body)),
+      post
+    })
   }
 
-  onChange = editorState => {
-    this.props.updateEditorState(editorState, 'edit')
+  endEditing = () => {
+    this.setState({
+      isEditing: false,
+      editorState: EditorState.createEmpty(),
+      post: {},
+      errors: {}
+    })
   }
 
-  onDelete = () => {
+  onEditorChange = editorState => {
+    this.setState({
+      editorState,
+      post: {
+        ...this.state.post,
+        body: editorState.getCurrentContent().hasText()
+          ? stateToHTML(editorState.getCurrentContent())
+          : ''
+      }
+    })
+  }
+
+  onDelete = e => {
+    e.preventDefault()
     const { post } = this.props
     const confirm = window.confirm(`Are you sure to delete ${post.title}`)
     if (confirm) {
@@ -56,13 +94,29 @@ class PostDetails extends Component {
   }
 
   save = e => {
-    console.log('Save!')
-    this.props.updatePost(this.props.edited_post)
+    e.preventDefault()
+    const { post } = this.state
+    const errors = {}
+
+    if (post.body === '') {
+      errors.body = "Body can't be blank!"
+    }
+
+    if (Object.keys(errors).length > 0) {
+      this.setState({
+        errors
+      })
+    } else {
+      this.props.updatePost(this.state.post)
+      this.endEditing()
+    }
+
+    return false
   }
 
   cancel = e => {
-    console.log('Save!')
-    this.props.editPost(null)
+    e.preventDefault()
+    this.endEditing()
   }
 
   onCommentAdd = comment => {
@@ -71,23 +125,94 @@ class PostDetails extends Component {
       author: comment.author,
       parentId: this.props.post.id
     })
+    this.props.setAuthorIfNotPresent(comment.author)
   }
 
+  onPostUpVote = () => {
+    this.props.upVotePost(this.props.post)
+  }
+
+  onPostDownVote = () => {
+    this.props.downVotePost(this.props.post)
+  }
+
+  onCommentUpVote = comment => {
+    this.props.upVoteComment(comment)
+  }
+
+  onCommentDownVote = comment => {
+    this.props.downVoteComment(comment)
+  }
+
+  onCommentStartEditing = isEditingComment => {
+    this.setState(state => ({
+      ...state,
+      isEditingComment
+    }))
+  }
+  onCommentEndEditing = isEditingComment => {
+    this.setState(state => ({
+      ...state,
+      isEditingComment
+    }))
+  }
+
+  onCommentEdit = comment => {
+    this.props.editComment(comment)
+  }
+
+  onCommentDelete = comment => {
+    if (window.confirm('Do you realy want to delete this comment?')) {
+      this.props.deleteComment(comment)
+    }
+  }
+
+  onCommentCheckOwnership = comment => {
+    return this.props.authorName === comment.author
+  }
+
+  onSortChange = sortOptions => {
+    this.props.sortComments(this.props.postId, sortOptions)
+  }
+
+  _leave = e => {
+    e.preventDefault()
+
+    let leave = true
+
+    if (this.state.isEditing || this.state.isEditingComment) {
+      leave = window.confirm(
+        'You are currently editing this post, Are you sure you want to leave and loose made changes ?'
+      )
+    }
+
+    if (leave) {
+      this.props.goBack()
+    }
+  }
+
+  _checkPostOwnership = () => {
+    const { post, authorName } = this.props
+    return post && post.author === authorName
+  }
+
+  /**
+   * Rendering helpers
+   */
+
   renderTitle() {
-    if (this.props.isEditing) {
-      return <h3>{this.props.edited_post.title}</h3>
+    const { post } = this.props
+    if (this.state.isEditing) {
+      return <h3> {post.title} </h3>
     }
     return (
-      !this.props.isEditing &&
-      this.props.post !== null && (
+      post !== null && (
         <div>
-          <h3>{this.props.post.title}</h3>
+          <h3>{post && post.title}</h3>
           <p className="valign-wrapper">
-            <Icon>alarm</Icon>&nbsp;
-            <Moment fromNow>
-              {this.props.post.timestamp}
-            </Moment>&nbsp;-&nbsp;<Icon>account_circle</Icon>&nbsp;By&nbsp;
-            {this.props.post.author}
+            <Icon> alarm </Icon>&nbsp;
+            <Moment fromNow>{post && post.timestamp}</Moment>&nbsp;-&nbsp;<Icon>account_circle</Icon>
+            &nbsp; By&nbsp;{post && post.author}
           </p>
         </div>
       )
@@ -95,86 +220,101 @@ class PostDetails extends Component {
   }
 
   renderBody() {
-    if (this.props.isEditing) {
+    if (this.state.isEditing) {
       return (
         <Row>
-          <RichEditor
-            editorState={this.props.editorState}
-            onChange={this.onChange}
-          />
+          <Col s={12}>
+            <RichEditor
+              editorState={this.state.editorState}
+              onChange={this.onEditorChange}
+            />
+            {this.state.errors.body && (
+              <p className="right-align red-text darken-1">
+                {this.state.errors.body}
+              </p>
+            )}
+          </Col>
         </Row>
       )
     }
+
+    const { post } = this.props
     const innerHTML = {
-      __html: this.props.post !== null ? this.props.post.body : ''
+      __html: post ? post.body : ''
     }
     return (
       <Row>
         <Col s={12}>
-          <p dangerouslySetInnerHTML={innerHTML} />
-        </Col>
+          <p
+            style={{
+              padding: '20px 0'
+            }}
+            dangerouslySetInnerHTML={innerHTML}
+          />{' '}
+        </Col>{' '}
       </Row>
     )
   }
 
   renderButton() {
-    if (this.props.isEditing) {
-      return (
+    const { post } = this.props
+    if (this.state.isEditing) {
+      return [
         <Button
-          large
-          style={{ bottom: '145px', right: '68px' }}
-          className="red"
-          floating
-          fab="vertical"
+          style={{
+            marginRight: '10px'
+          }}
+          key="save"
+          className="green darken-1"
+          onClick={this.save}
           waves="light"
-          icon="mode_edit"
+          disabled={this.state.post === post}
         >
-          <Button
-            floating
-            className="green darken-1"
-            onClick={this.save}
-            waves="light"
-            disabled={this.props.edited_post === this.props.post}
-          />
-          <Button
-            floating
-            className="red darken-1"
-            onClick={this.cancel}
-            waves="light"
-          />
+          Save{' '}
+        </Button>,
+        <Button
+          key="cancel"
+          className="red darken-1"
+          onClick={this.cancel}
+          waves="light"
+        >
+          Cancel{' '}
         </Button>
-      )
+      ]
     }
 
     return [
-      <Button
-        style={{ left: '100px', position: 'absolute' }}
-        floating
-        className="green darken-1"
+      <a
+        key="edit"
+        className="green-text darken-1"
+        href="#edit"
         onClick={this.startEditing}
-        waves="light"
-        icon="mode_edit"
-      />,
-      <Button
-        style={{ position: 'absolute' }}
-        floating
+      >
+        <Icon> mode_edit </Icon>{' '}
+      </a>,
+
+      <a
+        key="delete"
+        className="red-text darken-1"
+        href="#delete"
         onClick={this.onDelete}
-        className="red darken-1"
-        icon="delete"
-      />
+      >
+        <Icon> delete </Icon>{' '}
+      </a>
     ]
   }
 
   renderCommentBox() {
-    if (!this.props.isEditing) {
+    if (!this.state.isEditing) {
       return (
         <Row>
           <Col s={12}>
-            <Collapsible popout>
-              <CollapsibleItem header="Add a new comment" icon="add">
-                <CommentBox onAdd={this.onCommentAdd} />
-              </CollapsibleItem>
-            </Collapsible>
+            <Card title="Add a comment">
+              <CommentBox
+                onAdd={this.onCommentAdd}
+                author={this.props.authorName}
+              />
+            </Card>
           </Col>
         </Row>
       )
@@ -192,74 +332,53 @@ class PostDetails extends Component {
         onStartEditing={this.onCommentStartEditing}
         onEndEditing={this.onCommentEndEditing}
         onSortChange={this.onSortChange}
+        checkOwnership={this.onCommentCheckOwnership}
       />
     )
   }
 
-  onCommentUpVote(id) {
-    this.props.upVoteComment(id)
-  }
-
-  onCommentDownVote(id) {
-    this.props.downVoteComment(id)
-  }
-
-  onCommentStartEditing = isEditing => {
-    this.setState(state => ({
-      ...state,
-      isEditing
-    }))
-  }
-  onCommentEndEditing = isEditing => {
-    this.setState(state => ({ ...state, isEditing }))
-  }
-
-  onCommentEdit = comment => {
-    console.log('Edit comment', comment)
-  }
-
-  onCommentDelete = comment => {
-    console.log('Delete comment', comment)
-  }
-
-  onSortChange(sortOptions) {
-    this.props.sortComments(this.props.postId, sortOptions)
-  }
-
-  _leave = e => {
-    e.preventDefault()
-
-    let leave = true
-
-    if (this.props.isEditing) {
-      leave = window.confirm(
-        'You are currently editing this post, Are you sure you want to leave and loose made changes ?'
-      )
-    }
-
-    if (leave) {
-      this.props.editPost(null)
-      this.props.goBack()
-    }
-  }
-
   render() {
+    const { post } = this.props
     return (
       <div>
         <Row>
           <Col s={12}>
-            {this.renderButton()}
             <a href="#back" onClick={this._leave}>
-              <Icon left>navigate_before</Icon> Back
-            </a>
+              <Icon left> navigate_before </Icon> Back{' '}
+            </a>{' '}
           </Col>
-
           <Col s={12}>
-            {this.renderTitle()}
-            {this.renderBody()}
-
-            {this.renderCommentBox()}
-            {this.renderCommentList()}
+            <Col m={1} className="hide-on-small-only">
+              <Vote
+                iconUp={<Icon small> expand_less </Icon>}
+                iconDown={<Icon small> expand_more </Icon>}
+                count={(post && post.voteScore) || 0}
+                onVoteDown={this.onPostDownVote}
+                onVoteUp={this.onPostUpVote}
+              />{' '}
+            </Col>{' '}
+            <Col s={12} m={11}>
+              <Card
+                actions={this._checkPostOwnership() ? this.renderButton() : []}
+              >
+                <Vote
+                  style={{
+                    fontSize: '14px',
+                    position: 'absolute',
+                    top: '1em',
+                    right: '0.25em'
+                  }}
+                  className="hide-on-med-and-up"
+                  iconUp={<Icon small> expand_less </Icon>}
+                  iconDown={<Icon small> expand_more </Icon>}
+                  count={(post && post.voteScore) || 0}
+                  onVoteDown={this.onPostDownVote}
+                  onVoteUp={this.onPostUpVote}
+                />
+                {this.renderTitle()} {this.renderBody()}
+              </Card>
+              {this.renderCommentBox()} {this.renderCommentList()}
+            </Col>
           </Col>
         </Row>
       </div>
@@ -267,16 +386,13 @@ class PostDetails extends Component {
   }
 }
 
-function mapStateToProps({ editorState, posts, comments }, props) {
-  console.log(props)
+function mapStateToProps({ posts, comments }, props) {
   const { postId } = props.match.params
-  const { post, edited_post, isEditing } = posts
+  const { authorName, post } = posts
   const { all: allComments } = comments
   return {
-    isEditing,
-    editorState,
+    authorName,
     post,
-    edited_post,
     postId,
     comments:
       !!allComments && !!allComments[postId]
@@ -289,18 +405,19 @@ function mapDispatchToProps(dispatch) {
   return {
     ...bindActionCreators(
       {
-        editPost,
-        initEditorWithContent,
-        updateEditorState,
         updatePost,
         fetchPost,
         deletePost,
+        upVotePost,
+        downVotePost,
         fetchComments,
         addComment,
         editComment,
+        deleteComment,
         upVoteComment,
         downVoteComment,
         sortComments,
+        setAuthorIfNotPresent,
         goBack
       },
       dispatch

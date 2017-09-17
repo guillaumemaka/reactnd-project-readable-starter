@@ -70,7 +70,9 @@ export const createComment = async comment => {
 }
 
 export const upVoteComment = async id => {
-  const res = await axios.post(`/api/comments/${id}`)
+  const res = await axios.post(`/api/comments/${id}`, {
+    option: 'upVote'
+  })
   return res.data
 }
 

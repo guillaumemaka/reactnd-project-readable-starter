@@ -11,6 +11,7 @@ class SortControl extends Component {
   static propTypes = {
     onSortChange: PropTypes.func.isRequired,
     defaultSortKey: PropTypes.string,
+    direction: PropTypes.oneOf(['asc', 'desc']),
     sortKeys: PropTypes.arrayOf(PropTypes.string).isRequired,
     sortLabels: (props, propName, componentName) => {
       if (!Array.isArray(props[propName])) {

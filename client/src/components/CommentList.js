@@ -1,19 +1,17 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
-import { Row, Col } from 'react-materialize'
+import { Row, Col, Card } from 'react-materialize'
 import SortControl from './shared/SortControl'
 import CommentListItem from './CommentListItem'
 
 class CommentList extends Component {
-  renderComments () {
-    if (this.props.comments === []) {
+  renderComments() {
+    if (!this.props.comments.length) {
       return (
         <Row>
-          <Col className='valign-wrapper' s={12}>
-            <p className='center'>
-              <strong>No comments found!</strong>
-            </p>
-          </Col>
+          <Card className="center-align">
+            <strong>No comments found! Be the first to add one.</strong>
+          </Card>
         </Row>
       )
     }
@@ -29,24 +27,46 @@ class CommentList extends Component {
           onDelete={this.props.onDelete}
           onStartEditing={this.props.onStartEditing}
           onEndEditing={this.props.onEndEditing}
+          checkOwnership={this.props.checkOwnership}
         />
       )
     })
   }
 
-  renderSortControl () {
+  renderSortControl() {
     return (
       <SortControl
         onSortChange={this.props.onSortChange}
-        defaultSortKey='scoreVote'
-        sortKeys={['scoreVote', 'timestamp']}
+        defaultSortKey="voteScore"
+        sortKeys={['voteScore', 'timestamp']}
         sortLabels={['By Score Vote', 'Date']}
+        direction="desc"
       />
     )
   }
 
-  render () {
-    return <div>{!!this.props.comments && this.renderComments()}</div>
+  render() {
+    return (
+      <div>
+        <Row>
+          <Col className="valign-wrapper" m={11}>
+            <h4>
+              Comments ({this.props.comments ? (
+                this.props.comments.length
+              ) : (
+                '0'
+              )})
+            </h4>
+          </Col>
+          {!!this.props.comments.length && (
+            <Col className="valign-wrapper" m={1}>
+              {this.renderSortControl()}
+            </Col>
+          )}
+        </Row>
+        {this.renderComments()}
+      </div>
+    )
   }
 }
 
@@ -58,7 +78,8 @@ CommentList.propTypes = {
   onVoteDown: PropTypes.func.isRequired,
   onStartEditing: PropTypes.func,
   onEndEditing: PropTypes.func,
-  onSortChange: PropTypes.func.isRequired
+  onSortChange: PropTypes.func.isRequired,
+  checkOwnership: PropTypes.func
 }
 
 export default CommentList

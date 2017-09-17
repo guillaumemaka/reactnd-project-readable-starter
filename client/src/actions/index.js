@@ -1,6 +1,7 @@
 import * as ActionTypes from './types'
 import * as ReadableAPI from '../utils/api'
 import { push } from 'react-router-redux'
+import uuid from 'uuid/v1'
 
 /***********************************
  * Actions Creators
@@ -29,24 +30,10 @@ export const notify = (category, message) => {
   }
 }
 
-export const editPost = post => {
-  return {
-    type: ActionTypes.EDIT_POST,
-    post
-  }
-}
-
 export const createdPost = post => {
   return {
     type: ActionTypes.CREATE_POST,
     post
-  }
-}
-
-export const editedPostBodyChange = text => {
-  return {
-    type: ActionTypes.EDITED_POST_CHANGE,
-    text
   }
 }
 
@@ -112,13 +99,6 @@ export const downvotedPost = post => {
   }
 }
 
-export const onNewPostChange = post => {
-  return {
-    type: ActionTypes.ON_NEW_POST_CHANGE,
-    post
-  }
-}
-
 /**********************************
  * Comment Actions creator
  **********************************/
@@ -180,32 +160,7 @@ export const fetchedCategories = categories => {
 }
 
 /**********************************
- * Draft-js Actions creator
- **********************************/
-
-export const updateEditorState = (editorState, view) => {
-  return {
-    type: ActionTypes.UPDATE_EDITOR_STATE,
-    editorState,
-    view
-  }
-}
-
-export const initEditorWithContent = content => dispatch => {
-  dispatch({
-    type: ActionTypes.INIT_EDITOR_STATE_WITH_CONTENT,
-    content
-  })
-}
-
-export const resetEditor = () => {
-  return {
-    type: ActionTypes.RESET_EDITOR_STATE
-  }
-}
-
-/**********************************
- * Async Actions
+ * Async Actions Creator
  **********************************/
 
 /**********************************
@@ -260,8 +215,8 @@ export const deletePost = post => async dispatch => {
   try {
     const p = await ReadableAPI.deletePost(post.id)
     dispatch(deletedPost(p))
-    dispatch(notify('success', 'Post deleted!'))
     dispatch(push('/'))
+    dispatch(notify('success', 'Post deleted!'))
   } catch (error) {
     console.log(error)
     dispatch(notify('error', error.response.data.error))
@@ -272,7 +227,6 @@ export const updatePost = post => async dispatch => {
   try {
     const p = await ReadableAPI.updatePost(post)
     dispatch(updatedPost(p))
-    dispatch(resetEditor())
     dispatch(notify('success', 'Post updated!'))
   } catch (error) {
     dispatch(notify('error', error.response.data.error || 'An error occured!'))
@@ -287,17 +241,16 @@ export const createPost = ({
 }) => async dispatch => {
   try {
     const p = await ReadableAPI.createPost({
-      id: Date.now(),
+      id: uuid(),
       timestamp: Date.now(),
-      author: author,
+      author,
       body,
       category,
       title
     })
     dispatch(createdPost(p))
-    dispatch(resetEditor())
-    dispatch(notify('success', 'Post created!'))
     dispatch(push(`/p/${p.id}`))
+    dispatch(notify('success', 'Post created!'))
   } catch (error) {
     dispatch(notify('error', error.response.data.error || 'An error occured!'))
   }
@@ -337,7 +290,7 @@ export const downVotePost = ({ id }) => async dispatch => {
 
 export const addComment = ({ body, author, parentId }) => async dispatch => {
   try {
-    const id = Date.now()
+    const id = uuid()
     const comment = await ReadableAPI.createComment({
       id,
       body,
@@ -356,15 +309,22 @@ export const deleteComment = ({ id }) => async dispatch => {
   try {
     const comment = await ReadableAPI.deleteComment(id)
     dispatch(deletedComment(comment))
+    dispatch(notify('success', 'Comment deleted!'))
   } catch (error) {
     dispatch(notify('error', error.response.data.error || 'An error occured!'))
   }
 }
 
-export const editComment = ({ id, body, timestamp }) => async dispatch => {
+export const editComment = comment => async dispatch => {
   try {
-    const comment = await ReadableAPI.updateComment({ id, body, timestamp })
-    dispatch(editedComment(comment))
+    const { id, body } = comment
+    const timestamp = Date.now()
+    const updatedComment = await ReadableAPI.updateComment({
+      id,
+      body,
+      timestamp
+    })
+    dispatch(editedComment(updatedComment))
     dispatch(notify('success', 'Comment edited!'))
   } catch (error) {
     dispatch(notify('error', error.response.data.error || 'An error occured!'))
@@ -395,7 +355,6 @@ export const getCommentCounts = posts => async dispatch => {
       const posts = await ReadableAPI.getCommentsForPost(p.id)
       dispatch(gotCommentCount(p.id, posts.length))
     } catch (error) {
-      console.log(error)
       dispatch(gotCommentCount(p.id, 0))
     }
   })
@@ -420,4 +379,26 @@ export const fetchCategories = () => async dispatch => {
 
 export const clearNotification = id => dispatch => {
   dispatch({ type: ActionTypes.CLEAR_NOTIFICATION, id })
+}
+
+/**********************************
+ * Others
+ **********************************/
+
+export const setAuthor = authorName => {
+  return {
+    type: ActionTypes.SET_AUTHOR_NAME,
+    authorName
+  }
+}
+
+export const setAuthorIfNotPresent = authorNameToSet => (
+  dispatch,
+  getState
+) => {
+  const { posts: { authorName } } = getState()
+  if (!authorName) {
+    dispatch(setAuthor(authorNameToSet))
+    dispatch(notify('info', `You are now known as ${authorNameToSet}.`))
+  }
 }

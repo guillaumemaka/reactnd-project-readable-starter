@@ -2,9 +2,10 @@ import React, { Component } from 'react'
 import PropTypes from 'prop-types'
 import PostItem from './PostItem'
 import SortControl from './shared/SortControl'
+import { Row, Col, Card } from 'react-materialize'
 
 class PostsList extends Component {
-  renderPosts () {
+  renderPosts() {
     const { posts, onVoteDown, onVoteUp } = this.props
     if (posts !== []) {
       return posts.map(p => {
@@ -19,17 +20,31 @@ class PostsList extends Component {
       })
     }
   }
-  render () {
-    const { onSortChange } = this.props
+  render() {
+    const { onSortChange, posts } = this.props
     return (
       <div>
-        <SortControl
-          onSortChange={onSortChange}
-          defaultSortKey='voteScore'
-          sortKeys={['timestamp', 'voteScore']}
-          sortLabels={['Date', 'Vote Score']}
-        />
-        {this.renderPosts()}
+        <Row className="right">
+          <SortControl
+            onSortChange={onSortChange}
+            defaultSortKey="voteScore"
+            sortKeys={['timestamp', 'voteScore']}
+            sortLabels={['Date', 'Vote Score']}
+            direction="desc"
+          />
+        </Row>
+        <Row>
+          <Col s={12}>
+            {!posts.length && (
+              <Row>
+                <Card>
+                  <p className="center-align">Nothing to show here...</p>
+                </Card>
+              </Row>
+            )}
+            {posts && this.renderPosts()}
+          </Col>
+        </Row>
       </div>
     )
   }

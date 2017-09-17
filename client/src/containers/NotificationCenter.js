@@ -47,9 +47,9 @@ class NotificationCenter extends Component {
           break
       }
 
-      setTimeout(() => {
-        this.props.clearNotification(n.id)
-      }, alertOptions.timeout + 1000)
+      this.props.clearNotification(n.id)
+      // setTimeout(() => {
+      // }, alertOptions.timeout + 1000)
     })
   }
 

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Col, Row, Card, Icon } from 'react-materialize'
 import PostStats from './PostStats'
 import Vote from './shared/Vote'
+import Moment from 'react-moment'
 
 class PostItem extends Component {
   static propTypes = {
@@ -60,7 +61,12 @@ class PostItem extends Component {
               onVoteDown={() => onVoteDown(post)}
               onVoteUp={() => onVoteUp(post)}
             />
-            <h4>{post.title}</h4>
+            <h5>{post.title}</h5>
+            <p style={{ padding: '5px 0 20px 0' }} className="valign-wrapper">
+              <Icon>alarm</Icon>&nbsp;
+              <Moment fromNow>{post.timestamp}</Moment>&nbsp;-&nbsp;<Icon>account_circle</Icon>&nbsp;By&nbsp;
+              {post.author}
+            </p>
             <div dangerouslySetInnerHTML={innerHTML} />
           </Card>
         </Col>

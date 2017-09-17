@@ -1,13 +1,12 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
-import { Row, Card, Col, Input, Icon, Button } from 'react-materialize'
+import { Row, Card, Col, Icon, Button } from 'react-materialize'
 import RichEditor from './RichEditor'
 import { stateToHTML } from 'draft-js-export-html'
 import { stateFromHTML } from 'draft-js-import-html'
 import { EditorState } from 'draft-js'
 import Moment from 'react-moment'
 import Vote from './shared/Vote'
-import SortControl from './shared/SortControl'
 
 import './CommentListItem.css'
 
@@ -23,6 +22,8 @@ class CommentListItem extends Component {
       ...this.props.comment,
       body: this.state.body
     })
+
+    this.endEditing()
   }
 
   onDelete = e => {
@@ -46,6 +47,16 @@ class CommentListItem extends Component {
       )
     })
     this.props.onStartEditing(this.state.isEditing)
+  }
+
+  endEditing = () => {
+    this.setState({
+      isEditing: false,
+      editorState: EditorState.createWithContent(
+        stateFromHTML(this.props.comment.body)
+      )
+    })
+    this.props.onEndEditing(this.state.isEditing)
   }
 
   onEditorChange = editorState => {
@@ -76,23 +87,51 @@ class CommentListItem extends Component {
   renderActions() {
     if (this.state.isEditing) {
       return [
-        <Button node="a" key="cancel" waves="light" onClick={this.onCancel}>
+        <Button
+          style={{ marginRight: '10px' }}
+          className="red darken-1"
+          key="cancel"
+          waves="light"
+          onClick={this.onCancel}
+        >
           Cancel
         </Button>,
-        <Button node="a" key="save" waves="light" onClick={this.onEdit}>
+        <Button
+          className="green darken-1"
+          key="save"
+          waves="light"
+          onClick={this.onEdit}
+        >
           Save
         </Button>
       ]
     }
 
     return [
-      <Button node="a" key="edit" waves="light" onClick={this.startEditing}>
-        Edit
-      </Button>,
-      <Button node="a" key="delete" waves="light" onClick={this.onDelete}>
-        Delete
-      </Button>
+      <a
+        key="edit"
+        className="green-text darken-1"
+        href="#edit"
+        onClick={this.startEditing}
+      >
+        <Icon>mode_edit</Icon>
+      </a>,
+      <a
+        key="delete"
+        className="red-text darken-1"
+        href="#delete"
+        onClick={this.onDelete}
+      >
+        <Icon>delete</Icon>
+      </a>
     ]
+  }
+
+  _checkOwnership = () => {
+    if (this.props.checkOwnership) {
+      return this.props.checkOwnership(this.props.comment)
+    }
+    return true
   }
 
   render() {
@@ -102,19 +141,36 @@ class CommentListItem extends Component {
         <Col className="hide-on-small-only" m={1}>
           <Vote
             count={comment.voteScore}
-            onVoteDown={this.props.onVoteDown}
-            onVoteUp={this.props.onVoteUp}
+            onVoteDown={() => this.props.onVoteDown(comment)}
+            onVoteUp={() => this.props.onVoteUp(comment)}
             iconUp={<Icon medium>expand_less</Icon>}
             iconDown={<Icon medium>expand_more</Icon>}
           />
         </Col>
         <Col s={12} m={11}>
-          <Card actions={this.renderActions()}>
-            <span className="valign-wrapper">
-              <Icon>account_circle</Icon>&nbsp;{this.props.comment.author}{' '}
-              &nbsp;said&nbsp;
-              <Moment fromNow>{this.props.comment.timestamp}</Moment>
-            </span>
+          <Card actions={this._checkOwnership() ? this.renderActions() : []}>
+            <Vote
+              style={{
+                fontSize: '14px',
+                position: 'absolute',
+                top: '1em',
+                right: '.25em',
+                zIndex: 100
+              }}
+              className="hide-on-med-and-up"
+              count={comment.voteScore}
+              onVoteDown={() => this.props.onVoteDown(comment)}
+              onVoteUp={() => this.props.onVoteUp(comment)}
+              iconUp={<Icon medium>expand_less</Icon>}
+              iconDown={<Icon medium>expand_more</Icon>}
+            />
+            {!this.state.isEditing && (
+              <span className="valign-wrapper">
+                <Icon>account_circle</Icon>&nbsp;{this.props.comment.author}{' '}
+                &nbsp;said&nbsp;
+                <Moment fromNow>{this.props.comment.timestamp}</Moment>
+              </span>
+            )}
             {this.renderBody()}
           </Card>
         </Col>
@@ -130,7 +186,8 @@ CommentListItem.propTypes = {
   onVoteUp: PropTypes.func.isRequired,
   onVoteDown: PropTypes.func.isRequired,
   onStartEditing: PropTypes.func,
-  onEndEditing: PropTypes.func
+  onEndEditing: PropTypes.func,
+  checkOwnership: PropTypes.func
 }
 
 export default CommentListItem

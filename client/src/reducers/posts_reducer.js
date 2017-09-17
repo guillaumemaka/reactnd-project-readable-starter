@@ -3,16 +3,12 @@ import sortBy from 'sort-by'
 import { stateToHTML } from 'draft-js-export-html'
 
 const initialState = {
+  authorName: localStorage.authorName || '',
   isFetching: false,
-  all: {},
-  byCategory: {},
-  post: null,
-  isEditing: false,
-  edited_post: null,
-  new_post: {}
+  all: {}
 }
 
-function normalizePost (posts) {
+function normalizePost(posts) {
   return posts.reduce((prev, currentPost) => {
     prev[currentPost.id] = currentPost
     return prev
@@ -21,15 +17,6 @@ function normalizePost (posts) {
 
 export default (state = initialState, action) => {
   switch (action.type) {
-    case '@@router/LOCATION_CHANGE':
-      if (state.isEditing) {
-        return {
-          ...state,
-          isEditing: false,
-          edited_post: null
-        }
-      }
-      return state
     case ActionTypes.FETCHING_POSTS:
       const { isFetching } = action
       return { ...state, isFetching }
@@ -52,51 +39,14 @@ export default (state = initialState, action) => {
         ...state,
         post: action.post
       }
-    case ActionTypes.EDIT_POST:
-      return {
-        ...state,
-        isEditing: !!action.post,
-        edited_post: action.post
-      }
-    case ActionTypes.UPDATE_EDITOR_STATE:
-      const { editorState, view } = action
-
-      switch (view) {
-        case 'create':
-          return {
-            ...state,
-            new_post: {
-              ...state.new_post,
-              body: stateToHTML(editorState.getCurrentContent())
-            }
-          }
-        case 'edit':
-          return {
-            ...state,
-            edited_post: {
-              ...state.edited_post,
-              body: stateToHTML(editorState.getCurrentContent())
-            }
-          }
-        default:
-          return state
-      }
-
-    case ActionTypes.ON_NEW_POST_CHANGE:
-      return {
-        ...state,
-        new_post: {
-          ...state.new_post,
-          ...action.post
-        }
-      }
     case ActionTypes.UPDATE_POST:
       return {
         ...state,
-        all: { ...state.all, [action.post.id]: action.post },
-        post: action.post,
-        edited_post: null,
-        isEditing: false
+        all: {
+          ...state.all,
+          [action.post.id]: action.post
+        },
+        post: state.post.id === action.post.id ? action.post : state.post
       }
     case ActionTypes.GET_COMMENT_COUNT:
       return {
@@ -128,7 +78,14 @@ export default (state = initialState, action) => {
       }
     case ActionTypes.DOWNVOTE_POST:
     case ActionTypes.UPVOTE_POST:
-      return { ...state, all: { ...state.all, [action.post.id]: action.post } }
+      return {
+        ...state,
+        all: { ...state.all, [action.post.id]: action.post },
+        post: action.post.id === state.post.id ? action.post : state.post
+      }
+    case ActionTypes.SET_AUTHOR_NAME:
+      localStorage.authorName = action.authorName
+      return { ...state, authorName: action.authorName }
     default:
       return state
   }

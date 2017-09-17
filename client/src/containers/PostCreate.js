@@ -1,61 +1,80 @@
 import React, { Component } from 'react'
 import { Col, Button, Row, Icon, Input } from 'react-materialize'
 import { connect } from 'react-redux'
-import {
-  fetchCategories,
-  createPost,
-  onNewPostChange,
-  updateEditorState
-} from '../actions'
+import { EditorState } from 'draft-js'
+import { fetchCategories, createPost, setAuthorIfNotPresent } from '../actions'
 import { Link } from 'react-router-dom'
 import RichEditor from '../components/RichEditor'
+import { stateToHTML } from 'draft-js-export-html'
 
 class PostCreate extends Component {
   state = {
-    errors: {}
+    editorState: EditorState.createEmpty(),
+    errors: {},
+    post: {}
   }
 
   componentDidMount() {
     if (!this.props.categories.length) {
       this.props.fetchCategories()
     }
+
+    if (!!this.props.authorName) {
+      this.setState({
+        post: {
+          ...this.state.post,
+          author: this.props.authorName
+        }
+      })
+    }
   }
 
   _onInputChange = e => {
     if (e.target.value) {
-      this.props.onNewPostChange({
-        ...this.props.new_post,
-        [e.target.name]: e.target.value
+      this.setState({
+        post: {
+          ...this.state.post,
+          [e.target.name]: e.target.value
+        }
       })
     }
   }
 
   _onEditorChange = editorState => {
-    this.props.updateEditorState(editorState, 'create')
+    this.setState({
+      editorState,
+      post: {
+        ...this.state.post,
+        body: editorState.getCurrentContent().hasText()
+          ? stateToHTML(editorState.getCurrentContent())
+          : ''
+      }
+    })
   }
 
   onSubmit = e => {
     e.preventDefault()
 
-    const { new_post } = this.props
-    const { category } = new_post
+    const { post } = this.state
+    const { category } = post
 
     const errors = ['author', 'body', 'title'].reduce((errors, field) => {
-      if (!new_post[field]) {
+      if (!post[field] || post[field] === '') {
         errors[field] = `${field} can't be blank!`
       }
 
       return errors
     }, {})
 
-    if (category === 'none') {
+    if (!category || category === 'none') {
       errors.category = 'Please select a category!'
     }
 
-    if (Object.keys(errors) > 0) {
+    if (Object.keys(errors).length > 0) {
       this.setState({ errors })
     } else {
-      this.props.createPost(new_post)
+      this.props.createPost(post)
+      this.props.setAuthorIfNotPresent(post.author)
     }
 
     return false
@@ -78,32 +97,49 @@ class PostCreate extends Component {
             <form onSubmit={this.onSubmit}>
               <Row>
                 <Input
+                  type="text"
                   s={12}
                   placeholder="Post title"
                   label="Post title"
                   onChange={this._onInputChange}
                   name="title"
-                  type="text"
-                  error={errors.title && errors.title}
                 />
+                <p className="red-text darken-1 right-align">
+                  {!!errors.title && errors.title}
+                </p>
               </Row>
               <Row>
                 <Input
+                  type="text"
                   s={12}
                   placeholder="Post author name"
                   label="Post author name"
                   onChange={this._onInputChange}
                   name="author"
-                  type="text"
-                  error={errors.author && errors.author}
+                  defaultValue={this.props.authorName}
+                  disabled={!!this.props.authorName}
                 />
+                <p className="red-text darken-1 right-align">
+                  {!!errors.author && errors.author}
+                </p>
+                {!this.props.authorName && (
+                  <span>
+                    <em>
+                      <strong className="cyan-text darken-1">
+                        You haven'yet posted anything, please choose your author
+                        name, note that author name will be use through the
+                        application and cannot be changed, so choose wisely.
+                      </strong>
+                    </em>
+                  </span>
+                )}
               </Row>
 
               <Row>
                 <Input
+                  type="select"
                   s={12}
                   name="category"
-                  type="select"
                   label="Select a category"
                   defaultValue="none"
                   onChange={this._onInputChange}
@@ -117,14 +153,19 @@ class PostCreate extends Component {
                     </option>
                   ))}
                 </Input>
+                <p className="red-text darken-1 right-align">
+                  {!!errors.category && errors.category}
+                </p>
               </Row>
               <Row>
                 <Col s={12}>
                   <RichEditor
-                    editorState={this.props.editorState}
+                    editorState={this.state.editorState}
                     onChange={this._onEditorChange}
                   />
-                  <span className="red-text">{errors.body && errors.body}</span>
+                  <p className="red-text darken-1 right-align">
+                    {!!errors.body && errors.body}
+                  </p>
                 </Col>
               </Row>
               <Button
@@ -143,8 +184,9 @@ class PostCreate extends Component {
 }
 
 function mapStateToProps({ editorState, posts, categories }) {
-  const { new_post } = posts
+  const { new_post, authorName } = posts
   return {
+    authorName,
     editorState,
     new_post,
     categories
@@ -153,7 +195,6 @@ function mapStateToProps({ editorState, posts, categories }) {
 
 export default connect(mapStateToProps, {
   createPost,
-  updateEditorState,
   fetchCategories,
-  onNewPostChange
+  setAuthorIfNotPresent
 })(PostCreate)

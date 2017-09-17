@@ -1,5 +1,6 @@
 {
   "eslint.enable": false,
   "prettier.semi": false,
-  "standard.enable": true
+  "standard.enable": true,
+  "javascript.validate.enable": false
 }

@@ -12,7 +12,7 @@ class CommentBox extends Component {
   }
 
   componentDidMount() {
-    if (!!this.props.author) {
+    if (this.props.author) {
       this.setState(state => ({
         ...state,
         comment: {
@@ -29,7 +29,9 @@ class CommentBox extends Component {
       editorState,
       comment: {
         ...this.state.comment,
-        body: stateToHTML(editorState.getCurrentContent())
+        body: editorState.getCurrentContent().hasText()
+          ? stateToHTML(editorState.getCurrentContent())
+          : ''
       }
     })
   }
@@ -40,15 +42,13 @@ class CommentBox extends Component {
     this.clear()
   }
 
-  onCancel = e => {
-    e.preventDefault()
-    this.clear()
-  }
-
   clear = () => {
     this.setState({
       editorState: EditorState.createEmpty(),
-      comment: {}
+      comment: {
+        ...this.state.comment,
+        body: ''
+      }
     })
   }
 
@@ -68,19 +68,38 @@ class CommentBox extends Component {
         <form>
           <Row>
             <Col s={12}>
-              <Input
-                s={12}
-                onChange={this.onInputChange}
-                name="author"
-                placeholder="Author name"
-                label="Author name"
-                disabled={!!this.props.author}
-                value={
-                  !!this.state.comment.author ? this.state.comment.author : ''
-                }
-              >
-                <Icon>account_circle</Icon>
-              </Input>
+              {!this.props.author && (
+                <Input
+                  type="text"
+                  s={12}
+                  onChange={this.onInputChange}
+                  name="author"
+                  placeholder="Author name"
+                  label="Author name"
+                  disabled={!!this.props.author}
+                  defaultValue={this.props.author}
+                >
+                  <Icon>account_circle</Icon>
+                </Input>
+              )}
+              {this.props.author && (
+                <div>
+                  <span className="valign-wrapper">
+                    <Icon>account_circle</Icon>&nbsp;{this.props.author}
+                  </span>
+                </div>
+              )}
+              {!this.state.comment.author && (
+                <span>
+                  <em>
+                    <strong className="cyan-text darken-1">
+                      You haven'yet posted anything, please choose your author
+                      name, note that author name will be use through the
+                      application and cannot be changed, so choose wisely.
+                    </strong>
+                  </em>
+                </span>
+              )}
             </Col>
           </Row>
           <Row>
@@ -94,12 +113,14 @@ class CommentBox extends Component {
           </Row>
           <Row className="right">
             <Col>
-              <Button className="white black-text" onClick={this.onCancel}>
-                Cancel
+              <Button
+                onClick={this.onAdd}
+                disabled={
+                  !(this.state.comment.author && this.state.comment.body)
+                }
+              >
+                Comment
               </Button>
-            </Col>
-            <Col>
-              <Button onClick={this.onAdd}>Comment</Button>
             </Col>
           </Row>
         </form>

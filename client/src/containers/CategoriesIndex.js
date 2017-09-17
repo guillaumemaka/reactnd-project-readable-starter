@@ -1,6 +1,6 @@
 import 'loaders.css/src/animations/ball-clip-rotate.scss'
 import React, { Component } from 'react'
-import { Icon, Row, Col, Collection } from 'react-materialize'
+import { Card, Icon, Row, Col, Collection } from 'react-materialize'
 import { NavLink, Link } from 'react-router-dom'
 import { connect } from 'react-redux'
 
@@ -41,7 +41,6 @@ class CategoriesIndex extends Component {
   }
 
   render() {
-    const { category } = this.props.match.params
     return (
       <Row>
         <Col m={9} s={12}>
@@ -55,14 +54,6 @@ class CategoriesIndex extends Component {
               <Link to="/">
                 <Icon left>navigate_before</Icon> Home
               </Link>
-
-              <h4>
-                Posts in{' '}
-                <strong>
-                  <em>{category}</em>
-                </strong>{' '}
-                category
-              </h4>
             </Col>
           </Row>
           {this.props.posts !== [] && (

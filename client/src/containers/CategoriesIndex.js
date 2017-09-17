@@ -1,6 +1,6 @@
 import 'loaders.css/src/animations/ball-clip-rotate.scss'
 import React, { Component } from 'react'
-import { Card, Icon, Row, Col, Collection } from 'react-materialize'
+import { Icon, Row, Col, Collection } from 'react-materialize'
 import { NavLink, Link } from 'react-router-dom'
 import { connect } from 'react-redux'
 

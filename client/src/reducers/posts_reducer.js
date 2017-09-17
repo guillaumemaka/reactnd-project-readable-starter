@@ -1,6 +1,5 @@
 import * as ActionTypes from '../actions/types'
 import sortBy from 'sort-by'
-import { stateToHTML } from 'draft-js-export-html'
 
 const initialState = {
   authorName: localStorage.authorName || '',
@@ -8,7 +7,7 @@ const initialState = {
   all: {}
 }
 
-function normalizePost(posts) {
+function normalizePost (posts) {
   return posts.reduce((prev, currentPost) => {
     prev[currentPost.id] = currentPost
     return prev
